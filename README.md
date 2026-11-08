@@ -156,3 +156,16 @@ Stage 2 – Completed.
 **Selectors** are scoped to the product area (`article.product_page`) so the "related products" block can't leak into the data.
 
 **Run:** `node src/extract-books.js`
+
+
+## Stage 4 – Clean, Validate, Store
+
+`src/clean-books.js` turns `raw-books.json` into clean, checked records.
+
+- `price_text` (`£51.77`) becomes `price_gbp` (`51.77`); the raw text is kept too.
+- Descriptions: the site's HTML contains a truncated copy plus the full text and a trailing `...more`; both are removed.
+- `product_url` is the record identity; a repeated URL counts once.
+- A Zod schema validates every record. Invalid records go to `output/errors.json` with reasons; valid ones go to `output/books.json`.
+- Re-running overwrites the output, so the result is always the same 60 records (idempotent).
+
+**Run:** `node src/clean-books.js`
