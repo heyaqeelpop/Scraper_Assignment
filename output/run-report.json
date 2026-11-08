@@ -1,17 +1,19 @@
 {
-  "started_at": "2026-11-08T07:38:29.550Z",
-  "duration_seconds": 2.37,
+  "started_at": "2026-11-08T08:04:53.173Z",
+  "duration_seconds": 0.38,
   "pages_fetched": 0,
   "cache_hits": 63,
   "retries": 0,
   "valid_records": 60,
   "invalid_records": 0,
-  "failed_pages": 1,
-  "failures": [
-    {
-      "product_url": "https://books.toscrape.com/catalogue/this-book-does-not-exist_99999/index.html",
-      "error": "HTTP 404 for https://books.toscrape.com/catalogue/this-book-does-not-exist_99999/index.html"
-    }
-  ],
+  "failed_pages": 0,
+  "changes": {
+    "new": 60,
+    "changed": 0,
+    "unchanged": 0,
+    "gone": 0,
+    "not_checked": 0
+  },
+  "failures": [],
   "fatal_error": null
 }

@@ -5,6 +5,7 @@
   "main": "src/run.js",
   "scripts": {
     "start": "node src/run.js",
+    "test": "node --test",
     "test-failure": "node src/run.js --inject-bad-url"
   },
   "keywords": [],

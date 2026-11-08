@@ -65,38 +65,59 @@ function normalize(raw) {
     };
 }
 
-async function clean() {
-    const rawBooks = JSON.parse(await fs.readFile(INPUT_FILE, "utf-8"));
-
+// Same book twice counts once (product_url is the identity).
+// Records without a usable URL are passed on so validation can reject them.
+function dedupeByUrl(records) {
     const seen = new Set();
-    const valid = [];
-    const errors = [];
+    const unique = [];
     let duplicates = 0;
 
-    for (const raw of rawBooks) {
-        const record = normalize(raw);
+    for (const record of records) {
+        const url = record.product_url;
 
-        // product_url is the identity: same book twice counts once
-        if (seen.has(record.product_url)) {
-            duplicates++;
-            continue;
+        if (typeof url === "string") {
+            if (seen.has(url)) {
+                duplicates++;
+                continue;
+            }
+            seen.add(url);
         }
+        unique.push(record);
+    }
 
+    return { unique, duplicates };
+}
+
+// Check every record against the schema; failures keep their reasons
+function validateRecords(records) {
+    const valid = [];
+    const errors = [];
+
+    for (const record of records) {
         const result = BookSchema.safeParse(record);
 
         if (result.success) {
-            seen.add(record.product_url);
             valid.push(result.data);
         } else {
             errors.push({
-                product_url: raw.product_url ?? null,
+                product_url: record.product_url ?? null,
                 reasons: result.error.issues.map(
                     i => `${i.path.join(".") || "(record)"}: ${i.message}`
                 ),
-                record: raw
+                record
             });
         }
     }
+
+    return { valid, errors };
+}
+
+async function clean() {
+    const rawBooks = JSON.parse(await fs.readFile(INPUT_FILE, "utf-8"));
+
+    const normalized = rawBooks.map(normalize);
+    const { unique, duplicates } = dedupeByUrl(normalized);
+    const { valid, errors } = validateRecords(unique);
 
     await fs.mkdir(OUTPUT_DIR, { recursive: true });
     await fs.writeFile(BOOKS_FILE, JSON.stringify(valid, null, 2), "utf-8");
@@ -111,11 +132,20 @@ async function clean() {
         rawCount: rawBooks.length,
         valid: valid.length,
         invalid: errors.length,
-        duplicates
+        duplicates,
+        records: valid
     };
 }
 
-module.exports = { clean };
+module.exports = {
+    clean,
+    parsePrice,
+    cleanDescription,
+    normalize,
+    dedupeByUrl,
+    validateRecords,
+    BookSchema
+};
 
 if (require.main === module) {
     clean().catch(error => {

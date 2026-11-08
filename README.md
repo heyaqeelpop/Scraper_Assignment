@@ -136,3 +136,11 @@ scarper/
 ├── package.json
 └── README.md
 ```
+
+
+## Extras
+
+- **Unit tests:** `npm test` runs 12 offline tests using small HTML fixtures (`test/fixtures/`): price parsing, relative to absolute URLs, missing description, duplicate URLs, malformed page, extra whitespace, scoping, CSV escaping, change detection.
+- **CSV export:** `output/books.csv`. Flattening: null becomes an empty cell, line breaks become spaces, commas and quotes are escaped.
+- **Change detection:** each record is hashed (without `fetched_at`); the run report shows new / changed / unchanged / gone. Pages that failed this run are `not_checked`, not `gone`.
+- **Dashboard:** `output/dashboard.html` shows record count, price range, ratings, failures, freshness and changes.

@@ -4,11 +4,15 @@ const { discover } = require("./discover-pages");
 const { extract } = require("./extract-books");
 const { clean } = require("./clean-books");
 const { stats } = require("./fetcher");
+const { exportCSV } = require("./export-csv");
+const { detectChanges } = require("./detect-changes");
+const { buildDashboard } = require("./build-dashboard");
 
 const REPORT_FILE = path.join(__dirname, "..", "output", "run-report.json");
 
 async function main() {
     const startedAt = new Date();
+    let records = [];
     const report = {
         started_at: startedAt.toISOString(),
         duration_seconds: null,
@@ -18,6 +22,7 @@ async function main() {
         valid_records: 0,
         invalid_records: 0,
         failed_pages: 0,
+        changes: null,
         failures: [],
         fatal_error: null
     };
@@ -42,6 +47,14 @@ async function main() {
         report.invalid_records = cleaned.invalid;
         report.failed_pages = failed.length;
         report.failures = failed;
+
+        // Extras: CSV export and change detection
+        await exportCSV(cleaned.records);
+        report.changes = await detectChanges(
+            cleaned.records,
+            failed.map(f => f.product_url)
+        );
+        records = cleaned.records;
     } catch (error) {
         // Even a fatal error still gets reported
         report.fatal_error = error.message;
@@ -61,6 +74,13 @@ async function main() {
             JSON.stringify(report, null, 2),
             "utf-8"
         );
+
+        // Extra: dashboard (built last so it can show the final report)
+        try {
+            await buildDashboard(records, report);
+        } catch (error) {
+            console.error("Dashboard failed:", error.message);
+        }
 
         console.log("\n--- RUN REPORT ---");
         console.log(JSON.stringify(report, null, 2));

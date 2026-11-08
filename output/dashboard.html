@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polite Scraper Dashboard</title>
+<style>
+:root { --bg:#fafafa; --fg:#1d1d1f; --card:#fff; --muted:#6b6b70; --line:#e2e2e6; --accent:#2f6fed; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#16161a; --fg:#ececf0; --card:#202026; --muted:#9a9aa3; --line:#34343c; --accent:#6c9bff; }
+}
+body { font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); margin:0; padding:24px; }
+main { max-width: 900px; margin: 0 auto; }
+h1 { margin-top:0; } h2 { margin-top:32px; font-size:1.1rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+.value { font-size:1.6rem; font-weight:600; } .label { color:var(--muted); font-size:.85rem; }
+.bar-row { display:grid; grid-template-columns:50px 1fr 30px; gap:10px; align-items:center; margin:6px 0; }
+.bar { background:var(--line); border-radius:4px; height:12px; }
+.bar div { background:var(--accent); height:100%; border-radius:4px; }
+small, .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+<h1>Polite Scraper Dashboard</h1>
+<p class="muted">Books to Scrape · last run started 2026-11-08T08:04:53.173Z</p>
+
+<div class="grid">
+<div class="card"><div class="value">60</div><div class="label">Valid records</div></div>
+<div class="card"><div class="value">0</div><div class="label">Invalid records</div></div>
+<div class="card"><div class="value">0</div><div class="label">Failed pages</div></div>
+<div class="card"><div class="value">63</div><div class="label">Cache hits</div></div>
+<div class="card"><div class="value">0</div><div class="label">Pages fetched</div></div>
+<div class="card"><div class="value">0.38</div><div class="label">Duration (s)</div></div>
+</div>
+
+<h2>Price range (GBP)</h2>
+<div class="grid">
+<div class="card"><div class="value">£12.84</div><div class="label">Cheapest</div></div>
+<div class="card"><div class="value">£35.00</div><div class="label">Average</div></div>
+<div class="card"><div class="value">£57.31</div><div class="label">Most expensive</div></div>
+</div>
+
+<h2>Ratings</h2>
+<div class="bar-row"><span>One</span><div class="bar"><div style="width:100%"></div></div><span>15</span></div><div class="bar-row"><span>Two</span><div class="bar"><div style="width:53.333333333333336%"></div></div><span>8</span></div><div class="bar-row"><span>Three</span><div class="bar"><div style="width:86.66666666666667%"></div></div><span>13</span></div><div class="bar-row"><span>Four</span><div class="bar"><div style="width:66.66666666666666%"></div></div><span>10</span></div><div class="bar-row"><span>Five</span><div class="bar"><div style="width:93.33333333333333%"></div></div><span>14</span></div>
+
+<h2>Freshness</h2>
+<p>Most recent page download in the data: <strong>2026-11-08T08:04:53.513Z</strong></p>
+<p>Changes since previous run: new 60 · changed 0 · unchanged 0 · gone 0</p>
+
+<h2>Failures</h2>
+<p>No failed pages in the last run.</p>
+</main>
+</body>
+</html>
