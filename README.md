@@ -74,3 +74,72 @@ The website does not provide a robots.txt file at the checked URL. A missing rob
 - [ ] Stage 4 – Validate and store records
 - [ ] Stage 5 – Handle failures and generate reports
 - [ ] Stage 6 – Publish to GitHub
+
+
+
+
+## Stage 1: Fetch and Cache HTML
+
+### Implementation
+
+- Used Node.js built-in `fetch()` to download the first catalogue page.
+- Added a custom User-Agent: `FlyRankInternship-A9/1.0`.
+- Added an 8-second request timeout.
+- Checked the HTTP response status before processing the HTML.
+- Saved the downloaded HTML to `cache/catalogue-page-1.html`.
+- Implemented caching to avoid repeatedly requesting the same webpage.
+
+### How to Run
+
+```bash
+node src/index.js
+```
+
+### Expected Behaviour
+
+**First run:**
+- Fetches the webpage.
+- Saves the HTML inside the cache directory.
+- Displays the response size.
+
+**Subsequent runs:**
+- Reads the existing cached HTML.
+- Displays `CACHE HIT`.
+- Does not send another HTTP request.
+
+### Stage 1 Status
+
+- [x] Fetch first catalogue page
+- [x] Set User-Agent
+- [x] Implement request timeout
+- [x] Check HTTP status
+- [x] Save HTML locally
+- [x] Implement cache reuse
+
+
+
+
+
+## Stage 2 – Catalogue Page Discovery
+
+### Implementation
+
+- Used Cheerio to parse catalogue HTML.
+- Extracted book URLs using CSS selectors.
+- Automatically discovered pagination links.
+- Restricted discovery to the first three catalogue pages.
+- Converted relative URLs into absolute URLs.
+- Used JavaScript Set to eliminate duplicate URLs.
+- Verified that exactly 60 unique book URLs were discovered.
+- Reused cached HTML to avoid unnecessary HTTP requests.
+
+### Expected Output
+
+- Catalogue pages discovered: 3
+- Books per page: 20
+- Total book URLs: 60
+- Unique book URLs: 60
+
+### Status
+
+Stage 2 – Completed.
