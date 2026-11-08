@@ -2,183 +2,137 @@
 
 **FlyRank Internship | Backend Track | Week 5 | Assignment A9**
 
-## Stage 0 – Target Classification
+A small, polite scraping pipeline for [Books to Scrape](https://books.toscrape.com/), a public practice sandbox. It downloads the first three catalogue pages, visits all 60 book pages, turns the messy HTML into clean, schema-checked JSON, survives a broken page without crashing, and ends every run with a report.
 
-### 1. Target Website
-
-**Books to Scrape**
-
-https://books.toscrape.com/
-
-Books to Scrape is a public practice sandbox specifically designed for developers to learn and experiment with web scraping.
-
-### 2. Why This Website?
-
-The website provides a safe environment to practise scraping techniques. It contains a catalogue of books with individual product pages containing structured information such as titles, prices, ratings, availability and descriptions.
-
-### 3. Scraping Scope
-
-This project is strictly limited to:
-
-- The first 3 catalogue pages.
-- 20 books per catalogue page.
-- 60 unique book detail pages.
-
-The scraper will follow the website's pagination links to discover the books rather than hardcoding individual URLs.
-
-### 4. Data to Be Collected
-
-For every book, the scraper will collect the following fields:
-
-| Field | Description |
-|---|---|
-| title | Name of the book |
-| product_url | Absolute URL of the book |
-| price_text | Original price displayed |
-| availability_text | Stock availability |
-| rating_text | Book rating |
-| description | Book description, if available |
-| source_page | Catalogue page where the book was discovered |
-| fetched_at | Date and time of fetching |
-
-### 5. robots.txt Check
-
-**URL:** https://books.toscrape.com/robots.txt
-
-**HTTP Status:** 404 Not Found
-
-**Result:** No robots.txt file found.
-
-The website does not provide a robots.txt file at the checked URL. A missing robots.txt file is not considered automatic permission to scrape.
-
-### 6. Ethical Considerations
-
-- Scraping is restricted to the Books to Scrape practice sandbox.
-- Only the first three catalogue pages will be processed.
-- Requests will include an identifying User-Agent.
-- Requests will have appropriate timeouts and delays.
-- The scraper will not overload the website.
-- An official API will be preferred whenever one exists.
-- Logins, paywalls and website restrictions will never be bypassed.
-
-**Important:** I will not reuse this code on another site without checking its rules and terms first.
-
----
-
-### Project Progress
-
-- [x] Stage 0 – Target classification
-- [ ] Stage 1 – Fetch and cache HTML
-- [ ] Stage 2 – Discover three catalogue pages
-- [ ] Stage 3 – Extract book details
-- [ ] Stage 4 – Validate and store records
-- [ ] Stage 5 – Handle failures and generate reports
-- [ ] Stage 6 – Publish to GitHub
-
-
-
-
-## Stage 1: Fetch and Cache HTML
-
-### Implementation
-
-- Used Node.js built-in `fetch()` to download the first catalogue page.
-- Added a custom User-Agent: `FlyRankInternship-A9/1.0`.
-- Added an 8-second request timeout.
-- Checked the HTTP response status before processing the HTML.
-- Saved the downloaded HTML to `cache/catalogue-page-1.html`.
-- Implemented caching to avoid repeatedly requesting the same webpage.
-
-### How to Run
-
-```bash
-node src/index.js
+```
+fetch -> extract -> normalize -> validate -> store -> report
 ```
 
-### Expected Behaviour
+## Quick start
 
-**First run:**
-- Fetches the webpage.
-- Saves the HTML inside the cache directory.
-- Displays the response size.
+**Lane:** JavaScript (Node.js 20+, built-in `fetch`, Cheerio, Zod)
 
-**Subsequent runs:**
-- Reads the existing cached HTML.
-- Displays `CACHE HIT`.
-- Does not send another HTTP request.
+```bash
+git clone https://github.com/heyaqeelpop/scarper.git
+cd scarper
+npm install
+npm start
+```
 
-### Stage 1 Status
+`npm start` runs `node src/run.js`. The first run downloads about 63 pages at one request per second (roughly 1-2 minutes). Later runs read from the local cache and take under a second.
 
-- [x] Fetch first catalogue page
-- [x] Set User-Agent
-- [x] Implement request timeout
-- [x] Check HTTP status
-- [x] Save HTML locally
-- [x] Implement cache reuse
+After a run you get:
 
+| File | What it holds |
+|---|---|
+| `output/books.json` | 60 clean, validated, unique records |
+| `output/errors.json` | records that failed validation, with reasons (normally `[]`) |
+| `output/run-report.json` | counts, failures and duration of the run |
 
+Failure test (adds one made-up URL on purpose, your side only):
 
+```bash
+npm run test-failure
+```
 
+The run still finishes, `books.json` keeps its 60 records and `run-report.json` shows `failed_pages: 1`.
 
-## Stage 2 – Catalogue Page Discovery
+## Target classification (Stage 0)
 
-### Implementation
+- **Site:** Books to Scrape, https://books.toscrape.com/
+- **Why:** it is a sandbox built so people can practise scraping on it. That is the permission, and this is the only kind of site this project touches.
+- **How much:** the first 3 catalogue pages only (60 book pages).
+- **Data collected:** title, price, availability, rating, description, plus where and when each was fetched.
+- **robots.txt check:** `https://books.toscrape.com/robots.txt` returned **404 Not Found**, so no robots file was found. A missing file is not permission, it is just a missing file; the sandbox statement is the permission.
 
-- Used Cheerio to parse catalogue HTML.
-- Extracted book URLs using CSS selectors.
-- Automatically discovered pagination links.
-- Restricted discovery to the first three catalogue pages.
-- Converted relative URLs into absolute URLs.
-- Used JavaScript Set to eliminate duplicate URLs.
-- Verified that exactly 60 unique book URLs were discovered.
-- Reused cached HTML to avoid unnecessary HTTP requests.
+I will not reuse this code on another site without checking its rules and terms first.
 
-### Expected Output
+## Record schema
 
-- Catalogue pages discovered: 3
-- Books per page: 20
-- Total book URLs: 60
-- Unique book URLs: 60
+Raw fields from the page, plus one clean value:
 
-### Status
+| Field | Type | Notes |
+|---|---|---|
+| `title` | string | required |
+| `product_url` | string (https URL) | canonical URL, used as the record identity |
+| `price_text` | string | raw, e.g. `£51.77` |
+| `price_gbp` | number | cleaned, e.g. `51.77` |
+| `availability_text` | string | e.g. `In stock (22 available)` |
+| `rating_text` | string | `One` to `Five` |
+| `description` | string or null | null when the page has none |
+| `source_page` | string (URL) | catalogue page where the book was found |
+| `fetched_at` | ISO timestamp | when the page was fetched |
 
-Stage 2 – Completed.
+The schema is defined with Zod in `src/clean-books.js`. Every record is validated before it is stored; failures go to `errors.json` with the reason.
 
+## Politeness rules
 
-## Stage 3 – Extract Book Details
+- **User-agent:** an honest one that names the project and links to this repo.
+- **Delay:** at least 1 second between real requests. Cached pages need no delay.
+- **Timeout:** every request gives up after 8 seconds.
+- **Status check:** only HTTP 200 is parsed. Anything else is a failed fetch.
+- **Cache:** every page is saved under `cache/` and reused, so re-runs do not hit the site.
+- **Retries:** one retry after 2 seconds for timeouts, network errors and 5xx. Never for 404 or 403.
+- **Scope:** only the first 3 catalogue pages and the 60 books on them.
 
-`src/extract-books.js` reads `output/book-urls.json`, visits each of the 60 book pages and saves the raw fields to `output/raw-books.json`.
+## How the pipeline works
 
-**Fields (raw):** title, product_url, price_text, availability_text, rating_text, description (null if missing), source_page, fetched_at
+| Stage | File | What it does |
+|---|---|---|
+| Fetch + cache | `src/fetcher.js` | shared polite fetching, cache, retry, counters |
+| Discover | `src/discover-pages.js` | follows the catalogue's own "next" links, builds absolute URLs, removes duplicates |
+| Extract | `src/extract-books.js` | reads each book page using selectors scoped to the product area; one bad page is logged and skipped |
+| Clean + validate | `src/clean-books.js` | `£51.77` becomes `51.77`, removes the site's duplicated description text, dedupes by URL, validates with Zod |
+| Report | `src/run.js` | runs everything and always writes `run-report.json` |
 
-**Politeness:** identifying user-agent, 8 s timeout, status check, 1 s delay between real requests, HTML cached in `cache/books/`.
+Running twice produces the same 60 records, not 120 (idempotent): outputs are rewritten, not appended.
 
-**Selectors** are scoped to the product area (`article.product_page`) so the "related products" block can't leak into the data.
+## Run report (real run)
 
-**Run:** `node src/extract-books.js`
+<!-- PASTE YOUR REAL output/run-report.json HERE -->
 
+```json
+{
+  "started_at": "...",
+  "duration_seconds": 0,
+  "pages_fetched": 0,
+  "cache_hits": 0,
+  "retries": 0,
+  "valid_records": 60,
+  "invalid_records": 0,
+  "failed_pages": 0,
+  "failures": [],
+  "fatal_error": null
+}
+```
 
-## Stage 4 – Clean, Validate, Store
+## Why no browser was needed
 
-`src/clean-books.js` turns `raw-books.json` into clean, checked records.
+The data is already in the HTML the server sends, so a browser would only add cost.
 
-- `price_text` (`£51.77`) becomes `price_gbp` (`51.77`); the raw text is kept too.
-- Descriptions: the site's HTML contains a truncated copy plus the full text and a trailing `...more`; both are removed.
-- `product_url` is the record identity; a repeated URL counts once.
-- A Zod schema validates every record. Invalid records go to `output/errors.json` with reasons; valid ones go to `output/books.json`.
-- Re-running overwrites the output, so the result is always the same 60 records (idempotent).
+## Limitation
 
-**Run:** `node src/clean-books.js`
+The description cleanup is a heuristic: the site's HTML contains a truncated copy of the description followed by the full text, and my code removes the repeated prefix. If the site changes that markup, the cleanup could miss it. The scraper also expects exactly 60 books on 3 pages, so it fails loudly if that changes, and it is sequential (slow by design).
 
+## Ethics note
 
+<!-- REWRITE THIS IN YOUR OWN WORDS -->
+I use an official API when one exists. I never bypass logins, paywalls or blocks. I collect only the data I need, I go slowly, and I say who I am in the user-agent. A web page is untrusted input, so everything is checked before it is stored.
 
+## Project structure
 
-## Stage 5 – Failures and Run Report
-
-- `src/fetcher.js` holds the shared politeness rules: user-agent, 8 s timeout, 1 s delay between real requests, cache.
-- Each book page is processed separately; a bad page is logged and skipped, the rest continue.
-- Retry rules: one retry after 2 s for timeouts, network errors and 5xx. No retry for 404 or 403.
-- `src/run.js` runs the whole pipeline and writes `output/run-report.json` (start time, duration, pages fetched, cache hits, retries, valid/invalid records, failed pages).
-- Failure test: `node src/run.js --inject-bad-url` adds one made-up URL. The run finishes, `books.json` keeps 60 records and `failed_pages` is 1.
-
-**Run:** `node src/run.js`
+```
+scarper/
+├── src/
+│   ├── fetcher.js
+│   ├── discover-pages.js
+│   ├── extract-books.js
+│   ├── clean-books.js
+│   ├── run.js
+│   ├── check-robots.js
+│   └── index.js
+├── output/            (books.json, errors.json, run-report.json, ...)
+├── cache/             (ignored by git)
+├── package.json
+└── README.md
+```

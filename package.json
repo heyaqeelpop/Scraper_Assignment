@@ -1,10 +1,11 @@
 {
   "name": "scarper",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A polite scraping pipeline for Books to Scrape (FlyRank Internship A9)",
+  "main": "src/run.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/run.js",
+    "test-failure": "node src/run.js --inject-bad-url"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +14,8 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "zod": "^4.6.7"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
