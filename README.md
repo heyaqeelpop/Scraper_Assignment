@@ -143,3 +143,16 @@ node src/index.js
 ### Status
 
 Stage 2 – Completed.
+
+
+## Stage 3 – Extract Book Details
+
+`src/extract-books.js` reads `output/book-urls.json`, visits each of the 60 book pages and saves the raw fields to `output/raw-books.json`.
+
+**Fields (raw):** title, product_url, price_text, availability_text, rating_text, description (null if missing), source_page, fetched_at
+
+**Politeness:** identifying user-agent, 8 s timeout, status check, 1 s delay between real requests, HTML cached in `cache/books/`.
+
+**Selectors** are scoped to the product area (`article.product_page`) so the "related products" block can't leak into the data.
+
+**Run:** `node src/extract-books.js`
