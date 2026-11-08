@@ -169,3 +169,16 @@ Stage 2 – Completed.
 - Re-running overwrites the output, so the result is always the same 60 records (idempotent).
 
 **Run:** `node src/clean-books.js`
+
+
+
+
+## Stage 5 – Failures and Run Report
+
+- `src/fetcher.js` holds the shared politeness rules: user-agent, 8 s timeout, 1 s delay between real requests, cache.
+- Each book page is processed separately; a bad page is logged and skipped, the rest continue.
+- Retry rules: one retry after 2 s for timeouts, network errors and 5xx. No retry for 404 or 403.
+- `src/run.js` runs the whole pipeline and writes `output/run-report.json` (start time, duration, pages fetched, cache hits, retries, valid/invalid records, failed pages).
+- Failure test: `node src/run.js --inject-bad-url` adds one made-up URL. The run finishes, `books.json` keeps 60 records and `failed_pages` is 1.
+
+**Run:** `node src/run.js`

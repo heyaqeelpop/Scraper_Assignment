@@ -1,91 +1,24 @@
 const fs = require("fs/promises");
 const path = require("path");
 const cheerio = require("cheerio");
+const { getHTML } = require("./fetcher");
 
-// Project directories
 const CACHE_DIR = path.join(__dirname, "..", "cache", "books");
 const OUTPUT_DIR = path.join(__dirname, "..", "output");
-
-// Input and output files
 const URL_FILE = path.join(OUTPUT_DIR, "book-urls.json");
 const OUTPUT_FILE = path.join(OUTPUT_DIR, "raw-books.json");
 
-// Delay helper
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Fetch a book page or use its cached HTML
-async function getHTML(url, bookNumber) {
-
-    const cacheFile = path.join(
-        CACHE_DIR,
-        `book-${String(bookNumber).padStart(3, "0")}.html`
-    );
-
-    // Check whether the page is already cached
-    try {
-        const cachedHTML = await fs.readFile(cacheFile, "utf-8");
-
-        console.log(`CACHE HIT: Book ${bookNumber}`);
-
-        return cachedHTML;
-
-    } catch (error) {
-        if (error.code !== "ENOENT") {
-            throw error;
-        }
-    }
-
-    // Fetch the page if it isn't cached
-    console.log(`FETCH: Book ${bookNumber}`);
-
-    const response = await fetch(url, {
-        headers: {
-            "User-Agent": "FlyRankInternship-A9/1.0 (+https://github.com/heyaqeelpop/scarper)"
-        },
-        signal: AbortSignal.timeout(8000)
-    });
-
-    if (!response.ok) {
-        throw new Error(
-            `HTTP Error ${response.status} for ${url}`
-        );
-    }
-
-    const html = await response.text();
-
-    // Create cache directory and save HTML
-    await fs.mkdir(CACHE_DIR, { recursive: true });
-
-    await fs.writeFile(
-        cacheFile,
-        html,
-        "utf-8"
-    );
-
-    // Wait before making the next request
-    await sleep(1000);
-
-    return html;
-}
-
 // Extract details from an individual book page
 function extractBookDetails(html, bookInfo) {
-
     const $ = cheerio.load(html);
     const $product = $("article.product_page");
 
-    const title = $product.find("div.product_main h1")
-        .text()
-        .trim();
+    const title = $product.find("div.product_main h1").text().trim();
 
-    const price = $product.find("p.price_color")
-        .first()
-        .text()
-        .trim();
+    const price = $product.find("p.price_color").first().text().trim();
 
-    const availability = $product.find("p.instock.availability")
+    const availability = $product
+        .find("p.instock.availability")
         .first()
         .text()
         .replace(/\s+/g, " ")
@@ -98,10 +31,7 @@ function extractBookDetails(html, bookInfo) {
         .find(value => value !== "star-rating") || null;
 
     const description =
-        $product.find("#product_description")
-            .next("p")
-            .text()
-            .trim() || null;
+        $product.find("#product_description").next("p").text().trim() || null;
 
     return {
         title: title || null,
@@ -115,82 +45,62 @@ function extractBookDetails(html, bookInfo) {
     };
 }
 
-// Main function
-async function main() {
+// Each book is handled separately: one bad page is logged and skipped
+async function extract(bookURLs) {
+    const books = [];
+    const failed = [];
 
-    try {
+    for (let i = 0; i < bookURLs.length; i++) {
+        const bookInfo = bookURLs[i];
+        const bookNumber = i + 1;
 
-        // STEP 1: Read the discovered book URLs
-        const fileContent = await fs.readFile(
-            URL_FILE,
-            "utf-8"
-        );
+        console.log(`Processing Book ${bookNumber}/${bookURLs.length}`);
 
-        const bookURLs = JSON.parse(fileContent);
-
-        if (!Array.isArray(bookURLs) || bookURLs.length !== 60) {
-            throw new Error(
-                "Expected exactly 60 book URLs in book-urls.json"
-            );
-        }
-
-        console.log(`Found ${bookURLs.length} book URLs.\n`);
-
-        // STEP 2: Extract details from each book
-        const allBooks = [];
-
-        for (let i = 0; i < bookURLs.length; i++) {
-
-            const bookInfo = bookURLs[i];
-            const bookNumber = i + 1;
-
-            console.log(
-                `Processing Book ${bookNumber}/${bookURLs.length}`
-            );
-
+        try {
             const html = await getHTML(
                 bookInfo.product_url,
-                bookNumber
+                path.join(
+                    CACHE_DIR,
+                    `book-${String(bookNumber).padStart(3, "0")}.html`
+                ),
+                `Book ${bookNumber}`
             );
 
-            const book = extractBookDetails(
-                html,
-                bookInfo
-            );
+            const book = extractBookDetails(html, bookInfo);
 
             if (!book.title || !book.price_text) {
-                throw new Error(
-                    `Missing required details for Book ${bookNumber}`
-                );
+                throw new Error("Missing title or price on page");
             }
 
-            allBooks.push(book);
+            books.push(book);
+        } catch (error) {
+            console.error(`FAILED: Book ${bookNumber} - ${error.message}`);
+            failed.push({
+                product_url: bookInfo.product_url,
+                error: error.message
+            });
         }
-
-        // STEP 3: Save extracted data
-        await fs.mkdir(OUTPUT_DIR, { recursive: true });
-
-        await fs.writeFile(
-            OUTPUT_FILE,
-            JSON.stringify(allBooks, null, 2),
-            "utf-8"
-        );
-
-        console.log("\n------------------------------");
-        console.log("EXTRACTION COMPLETED");
-        console.log("------------------------------");
-
-        console.log("Total books extracted:", allBooks.length);
-        console.log(`detail_pages=${allBooks.length}`);
-        console.log("\nSample record:");
-        console.log(JSON.stringify(allBooks[0], null, 2));
-        console.log("Output file: output/raw-books.json");
-
-    } catch (error) {
-
-        console.error("\nExtraction failed:", error.message);
-
     }
+
+    await fs.mkdir(OUTPUT_DIR, { recursive: true });
+    await fs.writeFile(OUTPUT_FILE, JSON.stringify(books, null, 2), "utf-8");
+
+    console.log(`detail_pages=${books.length} failed_pages=${failed.length}`);
+    if (books.length) {
+        console.log("Sample record:");
+        console.log(JSON.stringify(books[0], null, 2));
+    }
+
+    return { books, failed };
 }
 
-main();
+module.exports = { extract };
+
+if (require.main === module) {
+    fs.readFile(URL_FILE, "utf-8")
+        .then(content => extract(JSON.parse(content)))
+        .catch(error => {
+            console.error("Extraction failed:", error.message);
+            process.exit(1);
+        });
+}

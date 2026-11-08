@@ -29,14 +29,16 @@ function parsePrice(priceText) {
     return match ? Number(match[0]) : null;
 }
 
-// The site's description holds a truncated copy followed by the full text,
-// and ends with a "...more" toggle. Remove both.
+// The site's description often holds a truncated copy followed by the full
+// text, and ends with a "...more" toggle. Remove both.
 function cleanDescription(text) {
     if (typeof text !== "string") return null;
 
     let d = text.replace(/\s*\.\.\.more\s*$/, "").replace(/\s+/g, " ").trim();
     if (!d) return null;
 
+    // If the first 40 characters appear again later, and everything before
+    // that second occurrence is a prefix of the rest, it's a truncated copy.
     const probe = d.slice(0, 40);
     const second = d.indexOf(probe, 1);
     if (second > 0) {
@@ -63,7 +65,7 @@ function normalize(raw) {
     };
 }
 
-async function main() {
+async function clean() {
     const rawBooks = JSON.parse(await fs.readFile(INPUT_FILE, "utf-8"));
 
     const seen = new Set();
@@ -100,18 +102,24 @@ async function main() {
     await fs.writeFile(BOOKS_FILE, JSON.stringify(valid, null, 2), "utf-8");
     await fs.writeFile(ERRORS_FILE, JSON.stringify(errors, null, 2), "utf-8");
 
-    console.log(`raw_records=${raw_count(rawBooks)}`);
+    console.log(`raw_records=${rawBooks.length}`);
     console.log(`valid_records=${valid.length}`);
     console.log(`invalid_records=${errors.length}`);
     console.log(`duplicates_skipped=${duplicates}`);
-    console.log("Output files: output/books.json, output/errors.json");
+
+    return {
+        rawCount: rawBooks.length,
+        valid: valid.length,
+        invalid: errors.length,
+        duplicates
+    };
 }
 
-function raw_count(list) {
-    return list.length;
-}
+module.exports = { clean };
 
-main().catch(error => {
-    console.error("Cleaning failed:", error.message);
-    process.exit(1);
-});
+if (require.main === module) {
+    clean().catch(error => {
+        console.error("Cleaning failed:", error.message);
+        process.exit(1);
+    });
+}
